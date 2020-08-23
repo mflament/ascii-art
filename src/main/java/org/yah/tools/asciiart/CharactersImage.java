@@ -1,5 +1,6 @@
 package org.yah.tools.asciiart;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -16,9 +17,12 @@ public class CharactersImage {
         this.characters = Objects.requireNonNull(characters, "characters is null");
         this.margin = createMargin(margin);
     }
-
     @Override
     public String toString() {
+        return toString(System.lineSeparator());
+    }
+
+    public String toString(String lineSeparator) {
         final StringBuilder sb = new StringBuilder();
         int height = characters.length;
         int width = characters[0].length;
@@ -28,13 +32,13 @@ public class CharactersImage {
             for (int x = 0; x < width; x++) {
                 sb.append(characters[y][x]);
             }
-            sb.append(LS);
+            sb.append(lineSeparator);
         }
         return sb.toString();
     }
 
-    public void toFile(String output) throws IOException {
-        final String string = toString();
+    public void toFile(String lineSeparator, File output) throws IOException {
+        final String string = toString(lineSeparator);
         try (OutputStream os = new FileOutputStream(output)) {
             final byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
             os.write(bytes);

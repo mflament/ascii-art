@@ -1,41 +1,14 @@
 package org.yah.tools.asciiart;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
-@SuppressWarnings("ForLoopReplaceableByForEach")
 public class AsciiArtGenerator {
 
 
     public static final int NORMALIZE = 1;
     public static final int INVERT = 2;
 
-    public static void main(String[] args) throws IOException {
-        AsciiArtGenerator analyzer = new AsciiArtGenerator(CHARACTER_RAMP_SIMPLE1);
-        final String imageFile = "images/private/DSCF2846.JPG";
-        //final String imageFile = "images/pinguin.png";
-        //final String imageFile = "images/test-normalize.png";
-        System.in.read();
-        System.out.println("generating");
-        long start = System.currentTimeMillis();
-        final CharactersImage generated = analyzer.generate(imageFile, 700, 155, NORMALIZE | INVERT);
-        generated.toFile("target/art.txt");
-        System.out.println("generation completed in  " + (System.currentTimeMillis() - start) + "ms");
-    }
-
-    public static String CHARACTER_RAMP_SIMPLE1 = " .,:;i1tfLCG08@";
-    public static String CHARACTER_RAMP_SIMPLE2 = " .:-=+*#%@";
-    public static String CHARACTER_RAMP_LONG = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
     private final CharacterRamp characterRamp;
-
-    /**
-     * default symbols to CHARACTER_RAMP_SIMPLE1
-     */
-    public AsciiArtGenerator() {
-        this(CHARACTER_RAMP_SIMPLE1);
-    }
 
     /**
      * @param symbols the ASCII character to use as result
@@ -44,23 +17,17 @@ public class AsciiArtGenerator {
         this.characterRamp = CharacterRamp.create(symbols);
     }
 
-    public CharactersImage generate(String imageFile,
+    public CharactersImage generate(BufferedImage image,
                                     int targetWidth,
                                     int targetHeight,
-                                    int flags) throws IOException {
-        return generate(ImageIO.read(new File(imageFile)), targetWidth, targetHeight, flags);
-    }
-
-    private CharactersImage generate(BufferedImage image,
-                                     int targetWidth,
-                                     int targetHeight,
-                                     int flags) {
+                                    int flags) {
         if (targetWidth == 0 || targetHeight == 0)
             throw new IllegalArgumentException("maxWidth or maxHeight can not be 0");
-        if (targetWidth < 0 && targetHeight < 0)
-            targetWidth = 80;
 
-        final float charAspectRatio = new CharacterBounds(" ").getAspectRatio();
+        if (targetWidth < 0 && targetHeight < 0)
+            targetWidth = image.getWidth();
+
+        final float charAspectRatio = new CharacterBounds(' ').getAspectRatio();
         final float imageAspectRatio = image.getWidth() / (float) image.getHeight();
         final float aspectRatio = charAspectRatio * imageAspectRatio;
 

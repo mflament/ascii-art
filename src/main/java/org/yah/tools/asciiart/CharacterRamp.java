@@ -1,11 +1,9 @@
 package org.yah.tools.asciiart;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class CharacterRamp {
 
@@ -15,39 +13,59 @@ public class CharacterRamp {
         return new CharacterRamp(sort(symbols));
     }
 
-    private final String sortedSymbols;
+    private static final String LS = System.lineSeparator();
+    private final CharacterLuminescence[] characters;
 
-    private CharacterRamp(String sortedSymbols) {
-        this.sortedSymbols = sortedSymbols;
+    private CharacterRamp(CharacterLuminescence[] characters) {
+        this.characters = characters;
     }
 
     public char get(float luminence) {
-        int index = (int) (luminence * (sortedSymbols.length() - 1));
-        return sortedSymbols.charAt(index);
+        for (int i = 1; i < characters.length; i++) {
+            if (characters[i].luminescence > luminence)
+                return characters[i - 1].character;
+        }
+        return characters[characters.length - 1].character;
     }
 
-    private static String sort(String symbols) {
-        if (symbols.length() == 0)
+    @Override
+    public String toString() {
+        return Arrays.stream(characters)
+                .map(c -> Character.toString(c.character))
+                .collect(Collectors.joining());
+    }
+
+    public String toDetailedString() {
+        return Arrays.stream(characters)
+                .map(c -> c.character + " : " + c.luminescence + LS)
+                .collect(Collectors.joining());
+    }
+
+    private static CharacterLuminescence[] sort(String symbols) {
+        final int length = symbols.length();
+        if (length == 0)
             throw new IllegalArgumentException("need symbols");
 
         CharacterBounds bounds = new CharacterBounds(symbols.charAt(0));
 
         GrayscaleImage characterImage = createImage(symbols, bounds);
-        CharacterLuminescence[] characterLuminences = new CharacterLuminescence[symbols.length()];
+        CharacterLuminescence[] characterLuminescences = new CharacterLuminescence[length];
         int xOffset = 0;
+        MinMax.Builder minMaxBuilder = MinMax.builder();
+        float[] luminescences = new float[length];
         // average each symbol luminescence
-        for (int i = 0; i < symbols.length(); i++) {
-            float luminence = characterImage.average(xOffset, 0, xOffset + bounds.width, bounds.heigth);
-            characterLuminences[i] = new CharacterLuminescence(symbols.charAt(i), luminence);
+        for (int i = 0; i < length; i++) {
+            luminescences[i] = characterImage.average(xOffset, 0, xOffset + bounds.width, bounds.heigth);
+            minMaxBuilder.add(luminescences[i]);
+            xOffset += bounds.width;
+        }
+        final MinMax minMax = minMaxBuilder.build();
+        for (int i = 0; i < length; i++) {
+            characterLuminescences[i] = new CharacterLuminescence(symbols.charAt(i), minMax.lerp(luminescences[i]));
         }
         // sort by luminescence
-        Arrays.sort(characterLuminences);
-        // create a string form sorted characters
-        StringBuilder sb = new StringBuilder(symbols.length());
-        for (int i = 0; i < characterLuminences.length; i++) {
-            sb.append(characterLuminences[i].character);
-        }
-        return sb.toString();
+        Arrays.sort(characterLuminescences);
+        return characterLuminescences;
     }
 
     private static GrayscaleImage createImage(String symbols, CharacterBounds bounds) {

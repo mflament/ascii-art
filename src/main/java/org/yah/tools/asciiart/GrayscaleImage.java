@@ -4,6 +4,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 public class GrayscaleImage {
 
@@ -18,7 +19,8 @@ public class GrayscaleImage {
         for (int y = 0; y < imageHeight; y++) {
             for (int x = 0; x < imageWidth; x++) {
                 int colorPixel = colorPixels[y * imageWidth + x];
-                grayPixels[y][x] = average(red(colorPixel), green(colorPixel), blue(colorPixel));
+                float alpha = alpha(colorPixel);
+                grayPixels[y][x] = average(red(colorPixel), green(colorPixel), blue(colorPixel)) * (1f - alpha);
             }
         }
         return new GrayscaleImage(grayPixels);
@@ -37,16 +39,6 @@ public class GrayscaleImage {
         width = pixels[0].length;
     }
 
-    public float average() {
-        float sum = 0;
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                sum += pixels[y][x];
-            }
-        }
-        return sum / (width * height);
-    }
-
     public float average(int x, int y, int maxx, int maxy) {
         maxx = Math.min(maxx, width);
         maxy = Math.min(maxy, height);
@@ -62,7 +54,7 @@ public class GrayscaleImage {
     }
 
     public void normalize() {
-        final MinMax minMax = MinMax.from(pixels);
+        final MinMax minMax = MinMax.builder().add(pixels).build();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 pixels[y][x] = minMax.lerp(pixels[y][x]);
@@ -78,22 +70,31 @@ public class GrayscaleImage {
         }
     }
 
-    public void save(String file) throws IOException {
+    @SuppressWarnings("unused")
+    public void save(String file) {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 image.setRGB(x, y, argb(pixels[y][x]));
             }
         }
-        ImageIO.write(image, "png", new File(file));
+        try {
+            ImageIO.write(image, "png", new File(file));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static float average(float... values) {
         float res = 0;
-        for (int i = 0; i < values.length; i++) {
-            res += values[i];
+        for (float value : values) {
+            res += value;
         }
         return res / values.length;
+    }
+
+    private static float alpha(int argb) {
+        return ((argb & 0xFF000000) >> 24) / 255f;
     }
 
     private static float red(int argb) {
